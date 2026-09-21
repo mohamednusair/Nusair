@@ -53,6 +53,7 @@ have, with numbers.
 
 | File | Purpose |
 |---|---|
+| `CLEAN-TEMP-FILES.bat` | Temp and cache cleanup only. Takes ~2 minutes. |
 | `MAKE-IT-FAST.bat` | **Start here.** Diagnoses and applies every fix in one go, no questions. |
 | `Run-Diagnose.bat` | Double-click launcher for the diagnosis (self-elevates). |
 | `Run-Optimize.bat` | Double-click launcher for the fixes (self-elevates, previews first). |
@@ -111,6 +112,32 @@ Everything below is safe and reversible.
    `-SkipRepair`.
 
 ---
+
+## Just cleaning temp files
+
+If you only want disk space back and not the full tune-up, right-click
+**`CLEAN-TEMP-FILES.bat`** -> **Run as administrator**. It takes about two
+minutes and clears:
+
+- user and Windows temp folders, prefetch data
+- crash dumps, error reports, kernel crash reports, servicing logs
+- Internet and graphics shader caches
+- the Windows Update download cache and Delivery Optimization cache
+- the Recycle Bin
+
+It deletes no documents, photos or settings - only caches and leftovers that
+Windows recreates on its own. Files that are open at the time are skipped and
+reported, which is normal; restart and run it again to catch those.
+
+```powershell
+.\Clean-TempFiles.ps1 -Preview              # show sizes, delete nothing
+.\Clean-TempFiles.ps1                        # clean
+.\Clean-TempFiles.ps1 -IncludeBrowserCache   # also clear Edge/Chrome cache
+```
+
+For the largest wins beyond this - old Windows installations left by an
+upgrade, which can exceed 20 GB - press <kbd>Win</kbd>+<kbd>R</kbd>, run
+`cleanmgr`, and choose **Clean up system files**.
 
 ## Command line use
 

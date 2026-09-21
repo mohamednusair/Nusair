@@ -419,7 +419,85 @@ if ($Apply) {
 # --------------------------------------------------------------------------
 # 5. Storage maintenance
 # --------------------------------------------------------------------------
-Write-Step 'STEP 5 - STORAGE MAINTENANCE'
+Write-Step 'STEP 5 - WINDOWS 11 BACKGROUND BLOAT'
+
+# Remove the artificial delay before startup apps launch, so the desktop
+# becomes usable sooner after sign-in.
+Write-Action 'Remove the logon startup delay'
+if ($Apply) {
+    $ser = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize'
+    New-Item -Path $ser -Force -ErrorAction SilentlyContinue | Out-Null
+    Set-ItemProperty -Path $ser -Name 'StartupDelayInMSec' -Value 0 -Type DWord -ErrorAction SilentlyContinue
+    Write-Action 'Startup delay removed' -Done
+}
+
+# Fast Startup hibernates the kernel instead of rebuilding it each boot.
+# On a slow disk this is one of the largest single boot-time wins.
+Write-Action 'Enable Fast Startup (large boot-time win, especially on a hard disk)'
+if ($Apply) {
+    & powercfg /hibernate on 2>$null
+    $pwr = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power'
+    Set-ItemProperty -Path $pwr -Name 'HiberbootEnabled' -Value 1 -Type DWord -ErrorAction SilentlyContinue
+    Write-Action 'Fast Startup enabled' -Done
+}
+
+# The Widgets board runs a background WebView2 browser process that is a
+# well-known memory and CPU consumer on low-spec machines.
+Write-Action 'Disable the Widgets board (runs a hidden browser in the background)'
+if ($Apply) {
+    $dsh = 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh'
+    New-Item -Path $dsh -Force -ErrorAction SilentlyContinue | Out-Null
+    Set-ItemProperty -Path $dsh -Name 'AllowNewsAndInterests' -Value 0 -Type DWord -ErrorAction SilentlyContinue
+    Write-Action 'Widgets disabled' -Done
+}
+
+# Background game recording runs constantly even when not gaming.
+Write-Action 'Disable Xbox Game Bar background recording'
+if ($Apply) {
+    $gcs = 'HKCU:\System\GameConfigStore'
+    if (Test-Path $gcs) {
+        Set-ItemProperty -Path $gcs -Name 'GameDVR_Enabled' -Value 0 -Type DWord -ErrorAction SilentlyContinue
+    }
+    $gdvr = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR'
+    New-Item -Path $gdvr -Force -ErrorAction SilentlyContinue | Out-Null
+    Set-ItemProperty -Path $gdvr -Name 'AllowGameDVR' -Value 0 -Type DWord -ErrorAction SilentlyContinue
+    Write-Action 'Game recording disabled' -Done
+}
+
+# Stop Store apps running and syncing when they are not open.
+Write-Action 'Stop Store apps running in the background'
+if ($Apply) {
+    $bg = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications'
+    New-Item -Path $bg -Force -ErrorAction SilentlyContinue | Out-Null
+    Set-ItemProperty -Path $bg -Name 'GlobalUserDisabled' -Value 1 -Type DWord -ErrorAction SilentlyContinue
+    Write-Action 'Background apps disabled' -Done
+}
+
+# Telemetry collection writes to disk continuously. Disabling it does not
+# affect Windows Update or security.
+$dt = Get-Service DiagTrack -ErrorAction SilentlyContinue
+if ($dt -and $dt.StartType -ne 'Disabled') {
+    Write-Action 'Disable telemetry collection service (DiagTrack)'
+    if ($Apply) {
+        Stop-Service DiagTrack -Force -ErrorAction SilentlyContinue
+        Set-Service DiagTrack -StartupType Disabled -ErrorAction SilentlyContinue
+        Write-Action 'DiagTrack disabled' -Done
+        Write-Host '    Undo: Set-Service DiagTrack -StartupType Automatic' -ForegroundColor DarkGray
+    }
+} else {
+    Write-Action 'Telemetry service already disabled' -Skipped
+}
+
+# Keep the drive from filling up again.
+Write-Action 'Turn on Storage Sense (automatic cleanup of temp files)'
+if ($Apply) {
+    $ss = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy'
+    New-Item -Path $ss -Force -ErrorAction SilentlyContinue | Out-Null
+    Set-ItemProperty -Path $ss -Name '01' -Value 1 -Type DWord -ErrorAction SilentlyContinue
+    Write-Action 'Storage Sense enabled' -Done
+}
+
+Write-Step 'STEP 6 - STORAGE MAINTENANCE'
 
 foreach ($vol in (Get-Volume -ErrorAction SilentlyContinue |
                   Where-Object { $_.DriveLetter -and $_.DriveType -eq 'Fixed' })) {
@@ -488,7 +566,7 @@ try {
 # 6. Repair corrupted system files
 # --------------------------------------------------------------------------
 if (-not $SkipRepair) {
-    Write-Step 'STEP 6 - REPAIR SYSTEM FILES (SLOW - 10 TO 30 MINUTES)'
+    Write-Step 'STEP 7 - REPAIR SYSTEM FILES (SLOW - 10 TO 30 MINUTES)'
     Write-Action 'DISM /RestoreHealth then sfc /scannow'
     if ($Apply) {
         Write-Host '    Running DISM... please wait, this looks frozen but is working.' -ForegroundColor Gray
@@ -504,7 +582,7 @@ if (-not $SkipRepair) {
         Write-Action 'Disk scan complete' -Done
     }
 } else {
-    Write-Step 'STEP 6 - SYSTEM FILE REPAIR SKIPPED (-SkipRepair)'
+    Write-Step 'STEP 7 - SYSTEM FILE REPAIR SKIPPED (-SkipRepair)'
 }
 
 # --------------------------------------------------------------------------

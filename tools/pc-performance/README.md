@@ -3,16 +3,26 @@
 Diagnose and fix a slow Windows 11 laptop: slow boot, freezing, slow app
 launches, and overheating.
 
-## Quick start
+## Quick start - just make it fast
 
 1. Copy the whole `pc-performance` folder onto the slow laptop (USB stick,
    OneDrive, or download the repo as a ZIP).
-2. Right-click **`Run-Diagnose.bat`** -> **Run as administrator**.
+2. Right-click **`MAKE-IT-FAST.bat`** -> **Run as administrator**.
+3. Leave it running for 20-40 minutes. Keep the laptop plugged in.
+4. Let it restart the laptop when it asks.
+
+That runs the diagnosis and applies every fix, including the overheating fix,
+without asking any questions. It still creates a System Restore point first,
+and it still backs up anything it disables.
+
+### Or do it step by step
+
+1. Right-click **`Run-Diagnose.bat`** -> **Run as administrator**.
    It changes nothing. It prints a prioritised list of what is actually wrong
    and saves a report to your Desktop as `pc-performance-report.txt`.
-3. Right-click **`Run-Optimize.bat`** -> **Run as administrator**.
+2. Right-click **`Run-Optimize.bat`** -> **Run as administrator**.
    It shows a preview first and asks before changing anything.
-4. **Restart the laptop.**
+3. **Restart the laptop.**
 
 If something goes wrong, run **`Undo-Startup-Changes.bat`**, or use
 System Restore and pick the point named
@@ -43,6 +53,7 @@ have, with numbers.
 
 | File | Purpose |
 |---|---|
+| `MAKE-IT-FAST.bat` | **Start here.** Diagnoses and applies every fix in one go, no questions. |
 | `Run-Diagnose.bat` | Double-click launcher for the diagnosis (self-elevates). |
 | `Run-Optimize.bat` | Double-click launcher for the fixes (self-elevates, previews first). |
 | `Undo-Startup-Changes.bat` | Re-enables anything the optimiser disabled at startup. |
@@ -86,10 +97,16 @@ Everything below is safe and reversible.
    and often *increases* sustained speed, because the CPU stops throttling.
 4. **UI overhead** — sets visual effects to best-performance, disables menu
    animation delay, turns off Windows suggestions/tips/ads.
-5. **Storage maintenance** — TRIM on SSDs, defragment on HDDs, disables
+5. **Windows 11 background bloat** — removes the artificial logon startup
+   delay, enables Fast Startup (a large boot-time win on a slow disk),
+   disables the Widgets board (it runs a hidden background browser process),
+   turns off Xbox Game Bar background recording, stops Store apps running in
+   the background, disables the telemetry service, and switches on Storage
+   Sense so the drive does not fill up again.
+6. **Storage maintenance** — TRIM on SSDs, defragment on HDDs, disables
    SysMain **only on SSD** (it genuinely helps on an HDD, so it is kept there),
    restores a system-managed page file if it was misconfigured.
-6. **Repairs system corruption** — `DISM /RestoreHealth`, `sfc /scannow`, and
+7. **Repairs system corruption** — `DISM /RestoreHealth`, `sfc /scannow`, and
    a read-only `chkdsk /scan`. This stage takes 10-30 minutes. Skip it with
    `-SkipRepair`.
 
@@ -121,6 +138,8 @@ Everything below is safe and reversible.
 | Startup items | `.\Optimize-PC.ps1 -RestoreStartup`, or Task Manager > Startup apps |
 | CPU turbo cap | `powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 100` then `powercfg /setactive SCHEME_CURRENT` |
 | SysMain disabled | `Set-Service SysMain -StartupType Automatic` |
+| Telemetry disabled | `Set-Service DiagTrack -StartupType Automatic` |
+| Widgets disabled | Delete `AllowNewsAndInterests` under `HKLM:\SOFTWARE\Policies\Microsoft\Dsh` |
 | Everything | System Restore > *"Before PC performance optimisation"* |
 
 Logs and the startup backup are written to
